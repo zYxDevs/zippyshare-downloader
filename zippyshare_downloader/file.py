@@ -94,7 +94,7 @@ class File:
             _filename = self.name
             extra_word = ''
         log.info('Downloading "%s" %s' % (self.name, extra_word))
-        file_path = (Path('.') / (folder if folder else '') / _filename)
+        file_path = Path('.') / (folder or '') / _filename
         file_path.parent.mkdir(exist_ok=True, parents=True)
         downloader = FileDownloader(
             self.download_url,
@@ -149,7 +149,7 @@ class File:
             self.name,
             extra_word
         ))
-        file_path = (Path('.') / (folder if folder else '') / _filename)
+        file_path = Path('.') / (folder or '') / _filename
         file_path.parent.mkdir(exist_ok=True, parents=True)
         args = (
             self.download_url,

@@ -21,27 +21,30 @@ def parse_info(url, body_html) -> Dict[str, str]:
     for element in parser.find_all('font'):
         str_element = str(element)
         # Size file, Uploaded
-        if str_element.startswith('<font style="line-height:18px; font-size: 13px;">'):
-            list_infos.append(element)
-        # Name file
-        elif str_element.startswith('<font style="line-height:22px; font-size: 14px;">'):
-            list_infos.append(element)
-        # Name file
-        elif str_element.startswith('<font style="line-height:20px; font-size: 14px;">'):
+        if (
+            str_element.startswith(
+                '<font style="line-height:18px; font-size: 13px;">'
+            )
+            or str_element.startswith(
+                '<font style="line-height:22px; font-size: 14px;">'
+            )
+            or str_element.startswith(
+                '<font style="line-height:20px; font-size: 14px;">'
+            )
+        ):
             list_infos.append(element)
     log.debug('Getting download url.')
     for pattern in PATTERNS:
         try:
             download_url = pattern(body_html, url)
         except Exception as e:
-            log.debug('%s failed to get download url, %s: %s' % (
-                pattern.__name__,
-                e.__class__.__name__,
-                str(e)
-            ))
+            log.debug(
+                f'{pattern.__name__} failed to get download url, {e.__class__.__name__}: {str(e)}'
+            )
+
             continue
         else:
-            log.debug('%s success to get download url' % pattern.__name__)
+            log.debug(f'{pattern.__name__} success to get download url')
             return {
                 "name_file": list_infos[0].decode_contents(),
                 "size": list_infos[1].decode_contents(),
@@ -78,19 +81,17 @@ def finalization_info(info, _async=False) -> Dict[str, str]:
     if '<img alt="file name" src="/fileName?key' in info['name_file']:
         log.warning('Filename is in image not in text, running additional fetch...')
         error = True
-    
+
     # Fix https://github.com/mansuf/zippyshare-downloader/issues/5
     elif len(info['name_file']) > 70:
         log.warning('Filename is too long, running additional fetch...')
         error = True
-    
+
     if error:
-        if _async:
-            return _get_absolute_filename_coro(info)
-        else:
-            return _get_absolute_filename(info)
-    else:
-        if _async:
-            return __dummy_return(info)
-        else:
-            return info
+        return (
+            _get_absolute_filename_coro(info)
+            if _async
+            else _get_absolute_filename(info)
+        )
+
+    return __dummy_return(info) if _async else info

@@ -22,7 +22,7 @@ class BaseDownloader:
 class FileDownloader(BaseDownloader):
     def __init__(self, url, file, progress_bar=True, replace=False, **headers) -> None:
         self.url = url
-        self.file = str(file) + '.temp'
+        self.file = f'{str(file)}.temp'
         self.real_file = file
         self.progress_bar = progress_bar
         self.replace = replace
@@ -47,9 +47,8 @@ class FileDownloader(BaseDownloader):
                 kwargs.setdefault('ncols', 80)
             elif length > 20 and length < 50:
                 kwargs.setdefault('dynamic_ncols', True)
-            # Length desc is more than 40 or 50
             elif length >= 50:
-                desc = desc[:20] + '...'
+                desc = f'{desc[:20]}...'
                 kwargs.setdefault('ncols', 90)
 
             kwargs.setdefault('desc', desc)
@@ -61,16 +60,13 @@ class FileDownloader(BaseDownloader):
             self._tqdm.update(n)
 
     def _get_file_size(self, file):
-        if os.path.exists(file):
-            return os.path.getsize(file)
-        else:
-            return None
+        return os.path.getsize(file) if os.path.exists(file) else None
 
     def _parse_headers(self, initial_sizes):
         headers = self.headers_request or {}
 
         if initial_sizes:
-            headers['Range'] = 'bytes=%s-' % initial_sizes
+            headers['Range'] = f'bytes={initial_sizes}-'
         return headers
 
     def download(self):
@@ -91,10 +87,9 @@ class FileDownloader(BaseDownloader):
             file_sizes += initial_file_sizes
 
         real_file_sizes = self._get_file_size(self.real_file)
-        if real_file_sizes:
-            if file_sizes == real_file_sizes and not self.replace:
-                log.info('File exist and replace is False, cancelling download...')
-                return
+        if real_file_sizes and file_sizes == real_file_sizes and not self.replace:
+            log.info('File exist and replace is False, cancelling download...')
+            return
 
         # Build the progress bar
         self._build_progres_bar(initial_file_sizes, float(file_sizes))
@@ -114,7 +109,7 @@ class FileDownloader(BaseDownloader):
                     break
                 writer.write(chunk)
                 self._update_progress_bar(len(chunk))
-        
+
         # Delete original file if replace is True and real file is exist
         if real_file_sizes and self.replace:
             os.remove(self.real_file)
@@ -142,7 +137,7 @@ class AsyncFileDownloader(BaseDownloader):
     """FileDownloader for async process using aiohttp with resumeable support"""
     def __init__(self, url, file, progress_bar=True, replace=False, **headers) -> None:
         self.url = url
-        self.file = str(file) + '.temp'
+        self.file = f'{str(file)}.temp'
         self.real_file = file
         self.progress_bar = progress_bar
         self.replace = replace
@@ -167,9 +162,8 @@ class AsyncFileDownloader(BaseDownloader):
                 kwargs.setdefault('ncols', 80)
             elif length > 20 and length < 50:
                 kwargs.setdefault('dynamic_ncols', True)
-            # Length desc is more than 40 or 50
             elif length >= 50:
-                desc = desc[:20] + '...'
+                desc = f'{desc[:20]}...'
                 kwargs.setdefault('ncols', 90)
 
             kwargs.setdefault('desc', desc)
@@ -181,16 +175,13 @@ class AsyncFileDownloader(BaseDownloader):
             self._tqdm.update(n)
 
     def _get_file_size(self, file):
-        if os.path.exists(file):
-            return os.path.getsize(file)
-        else:
-            return None
+        return os.path.getsize(file) if os.path.exists(file) else None
 
     def _parse_headers(self, initial_sizes):
         headers = self.headers_request or {}
 
         if initial_sizes:
-            headers['Range'] = 'bytes=%s-' % initial_sizes
+            headers['Range'] = f'bytes={initial_sizes}-'
         return headers
 
     async def download(self):
@@ -211,10 +202,9 @@ class AsyncFileDownloader(BaseDownloader):
             file_sizes += initial_file_sizes
 
         real_file_sizes = self._get_file_size(self.real_file)
-        if real_file_sizes:
-            if file_sizes == real_file_sizes and not self.replace:
-                log.info('File exist and replace is False, cancelling download...')
-                return
+        if real_file_sizes and file_sizes == real_file_sizes and not self.replace:
+            log.info('File exist and replace is False, cancelling download...')
+            return
 
         # Build the progress bar
         self._build_progres_bar(initial_file_sizes, float(file_sizes))
@@ -234,7 +224,7 @@ class AsyncFileDownloader(BaseDownloader):
                     break
                 writer.write(chunk)
                 self._update_progress_bar(len(chunk))
-        
+
         # Delete original file if replace is True and real file is exist
         if real_file_sizes and self.replace:
             os.remove(self.real_file)
@@ -273,9 +263,8 @@ class AsyncFastFileDownloader(BaseDownloader):
                 kwargs.setdefault('ncols', 80)
             elif length > 20 and length < 50:
                 kwargs.setdefault('dynamic_ncols', True)
-            # Length desc is more than 40 or 50
             elif length >= 50:
-                desc = desc[:20] + '...'
+                desc = f'{desc[:20]}...'
                 kwargs.setdefault('ncols', 90)
 
             kwargs.setdefault('desc', desc)
@@ -291,26 +280,23 @@ class AsyncFastFileDownloader(BaseDownloader):
             self._tqdm.close()
 
     def _get_file_size(self, file):
-        if os.path.exists(file):
-            return os.path.getsize(file)
-        else:
-            return None
+        return os.path.getsize(file) if os.path.exists(file) else None
 
     def _parse_headers(self, initial_sizes, end_sizes):
         headers = self.headers_request or {}
 
-        headers['Range'] = 'bytes=%s-%s' % (int(initial_sizes), int(end_sizes))
+        headers['Range'] = f'bytes={int(initial_sizes)}-{int(end_sizes)}'
         return headers
 
     def _get_temp_file(self, part):
-        return str(self.real_file) + '.temp.' + str(part)
+        return f'{str(self.real_file)}.temp.{str(part)}'
 
     async def _prepare_download(self, part, start_size, end_size):
         file = self._get_temp_file(part)
         initial_file_sizes = self._get_file_size(file) or 0
         pure_temp_file_sizes = initial_file_sizes
 
-        exist = True if initial_file_sizes else False
+        exist = bool(initial_file_sizes)
 
         # If temp part file exist
         # addition it with start_size
@@ -343,16 +329,16 @@ class AsyncFastFileDownloader(BaseDownloader):
 
     def _get_parts_size(self, length: int):
         divided = length / 2
-        if not divided.is_integer():
-            parts_size = [0, divided - 0.5, divided + 0.5, length]
-        else:
-            parts_size = [0, divided - 1, divided, length]
-        return parts_size
+        return (
+            [0, divided - 1, divided, length]
+            if divided.is_integer()
+            else [0, divided - 0.5, divided + 0.5, length]
+        )
 
     def _merge_files(self, parts, file_sizes):
         self._close_progress_bar()
         with open(self.real_file, 'wb') as writer:
-            
+
             self._build_progres_bar(0, file_sizes, 'merging_files')
 
             for part in parts:
@@ -365,7 +351,7 @@ class AsyncFastFileDownloader(BaseDownloader):
                             break
                         writer.write(chunks)
                         self._update_progress_bar(len(chunks))
-            
+
             self._close_progress_bar()
 
     async def download(self):

@@ -24,14 +24,12 @@ __all__ = (
 def process(**kwargs):
     silent = kwargs.pop('silent')
     json = kwargs.pop('json')
-    # We don't do fast download in non-async here
-    fast = kwargs.pop('fast')
-    if fast:
+    if fast := kwargs.pop('fast'):
         log.error('--fast option must be used with --async option')
         raise InvalidParameter('--fast option must be used with --async option')
 
     urls = kwargs.pop('urls')
-    
+
     # If urls is grabbed from file
     if isinstance(urls, list):
 
@@ -48,11 +46,7 @@ def process(**kwargs):
                 log.warning('--unzip is set, while --no-download is also set. Ignoring --unzip')
 
             # Begin the fetching !!!
-            files = []
-            for url in urls:
-                files.append(extract_info(url, **kwargs))
-        
-        # If download is yes
+            files = [extract_info(url, **kwargs) for url in urls]
         else:
             kwargs.pop('download')
             files = download(*urls, **kwargs)
@@ -61,7 +55,7 @@ def process(**kwargs):
             # while using multiple zippyshare urls
             if kwargs.get('filename'):
                 log.warning('Using multi zippyshare urls and --filename is set. Ignoring --filename option')
-        
+
         # Print all file informations 
         if json:
             print(dumps({'urls': [file.to_JSON() for file in files]}))
@@ -69,7 +63,6 @@ def process(**kwargs):
             for file in files:
                 pretty_print_result(file)
 
-    # If urls is single url
     else:
         # download to stdout
         if kwargs.pop('pipe'):
@@ -93,7 +86,7 @@ async def process_async(**kwargs):
         raise InvalidParameter('-pipe cannot be used with --async option')
 
     urls = kwargs.pop('urls')
-    
+
     # If urls is grabbed from file
     if isinstance(urls, list):
 
@@ -109,19 +102,19 @@ async def process_async(**kwargs):
             files = []
             for url in urls:
                 files.append(await extract_info_coro(url, **kwargs))
-        
+
         # If download is yes
         else:
             # Delete download parameter
             kwargs.pop('download')
-            
+
             # Warn the users if --filename is specified
             # while using multiple zippyshare urls
             if kwargs.get('filename'):
                 log.warning('Using multi zippyshare urls and --filename is set. Ignoring --filename option')
 
             files = await download_coro(*urls, **kwargs)
-        
+
         # Print all files informations
         if json:
             print(dumps({'urls': [file.to_JSON() for file in files]}))
@@ -147,11 +140,8 @@ def main():
     kwargs = build_kwargs(args, args.urls)
 
     # Disable logging if "-pipe" or "--json" or "--silent" is present
-    if kwargs.get('pipe') or kwargs.get('json'):
-        pass
-    else:
-        if not args.silent:
-            log = setup_logging('zippyshare_downloader', args.verbose)
+    if not kwargs.get('pipe') and not kwargs.get('json') and not args.silent:
+        log = setup_logging('zippyshare_downloader', args.verbose)
 
     # Throw error if "-pipe" and "--no-download" are present
     if kwargs.get('pipe') and not kwargs.get('download'):

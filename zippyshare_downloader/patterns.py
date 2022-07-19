@@ -56,7 +56,7 @@ def pattern1(body_string, url):
     element_value = scrapped.replace('document.getElementById(\'dlbutton\').href = ', '')
     url_download_init = getStartandEndvalue(element_value, '"')
     uncompiled_number = getStartandEndvalue(element_value, '(', ')')
-    
+
     # Finding Random Number variable a in scrapped_script
     variables = io.StringIO(scrapped_script).readlines()
     for var in variables:
@@ -84,7 +84,7 @@ def pattern1(body_string, url):
     else:
         random_number = uncompiled_number.replace('a', str(math.floor(int(a)/3))).replace('b', b)
 
-    
+
 
     # Now using self.evaluate() to safely do math calculations
     url_number = str(evaluate(random_number))
@@ -131,7 +131,7 @@ def pattern3(body_string, url):
             scrapped_script = None
     if scrapped_script is None:
         raise ParserError('download button javascript cannot be found')
-    
+
     scripts = io.StringIO(scrapped_script).readlines()
     _vars = {}
     init_url = None
@@ -140,10 +140,9 @@ def pattern3(body_string, url):
     for script in scripts:
         # Finding variables that contain numbers
         re_var = re.compile(r'(var ([a-zA-Z]) = )([0-9%]{1,})(;)')
-        found = re_var.search(script)
-        if found:
-            _name = found.group(2)
-            _value = found.group(3)
+        if found := re_var.search(script):
+            _name = found[2]
+            _value = found[3]
             _vars[_name] = _value
         # Finding url download button
         if script.strip().startswith('document.getElementById(\'dlbutton\').href'):
@@ -151,20 +150,17 @@ def pattern3(body_string, url):
                                 '(\/[a-zA-Z]\/[a-zA-Z0-9]{1,}\/)\"\+' \
                                 '(\([a-zA-Z] \+ [a-zA-Z] \+ [a-zA-Z] - [0-9]\))\+\"(\/.{1,})\";'
             re_dlbutton = re.compile(string_re_dlbutton)
-            result = re_dlbutton.search(script)
-            if result:
-                init_url = result.group(2)
-                numbers_pattern = result.group(3)
-                file_url = result.group(4)
-            else:
+            if not (result := re_dlbutton.search(script)):
                 raise ParserError('Invalid regex pattern when finding url dlbutton')
-    
+
+            init_url = result[2]
+            numbers_pattern = result[3]
+            file_url = result[4]
     if not _vars:
         raise ParserError('Cannot find required variables in dlbutton script')
-    else:
-        for var_name, var_value in _vars.items():
-            numbers_pattern = numbers_pattern.replace(var_name, var_value)
-        final_numbers = str(evaluate(numbers_pattern))
+    for var_name, var_value in _vars.items():
+        numbers_pattern = numbers_pattern.replace(var_name, var_value)
+    final_numbers = str(evaluate(numbers_pattern))
     return url[:url.find('.')] + '.zippyshare.com' + init_url + final_numbers + file_url
 
 def pattern4(body_string, url):
@@ -198,8 +194,8 @@ def pattern4(body_string, url):
     if not substr:
         raise ParserError(".substr() function cannot be found")
 
-    substr_start = substr.group('start')
-    substr_length = substr.group('length')
+    substr_start = substr['start']
+    substr_length = substr['length']
     substr_value = re.sub(substr_re, '', omg)[int(substr_start):int(substr_length)]
 
     scripts = io.StringIO(scrapped_script).readlines()
@@ -210,10 +206,9 @@ def pattern4(body_string, url):
     for script in scripts:
         # Finding variables that contain numbers
         re_var = re.compile(r'(var ([a-zA-Z]) = )([0-9]{1,})(;)')
-        found = re_var.search(script)
-        if found:
-            _name = found.group(2)
-            _value = found.group(3)
+        if found := re_var.search(script):
+            _name = found[2]
+            _value = found[3]
 
             if _value.startswith('document'):
                 continue
@@ -224,22 +219,20 @@ def pattern4(body_string, url):
         if script.strip().startswith('document.getElementById(\'dlbutton\').href'):
             string_re_dlbutton = r'(document\.getElementById\(\'dlbutton\'\)\.href = \")(\/[a-zA-Z]\/[a-zA-Z0-9]{1,}\/)\"\+(\(Math\.pow\([a-zA-Z], [0-9]\)\+[a-zA-Z]\))\+\"(\/.{1,})\";'
             re_dlbutton = re.compile(string_re_dlbutton)
-            result = re_dlbutton.search(script)
-            if result:
-                init_url = result.group(2)
-                math_func = result.group(3)
-                file_url = result.group(4)
-            else:
+            if not (result := re_dlbutton.search(script)):
                 raise ParserError('Invalid regex pattern when finding url dlbutton')
 
+            init_url = result[2]
+            math_func = result[3]
+            file_url = result[4]
     re_math_pow = r'\(Math\.pow\((?P<x>[a-zA-Z]), (?P<y>[0-9]{1,})\)\+[a-zA-Z]\)'
     x_y_math_pow = re.search(re_math_pow, math_func)
     if not x_y_math_pow:
         raise ParserError("Math.pow() cannot be found")
-    
-    x = x_y_math_pow.group('x')
+
+    x = x_y_math_pow['x']
     x = x.replace(x, _vars[x])
-    y = x_y_math_pow.group('y')
+    y = x_y_math_pow['y']
     b = len(substr_value)
 
     final_numbers = int(math.pow(int(x), int(y)) + b)
