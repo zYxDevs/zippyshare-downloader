@@ -15,11 +15,10 @@ class InvalidParameter(Exception):
     pass
 
 def _check_urls(url):
-    if os.path.exists(url):
-        with open(url, 'r') as opener:
-            return [check_valid_zippyshare_url(i) for i in opener.read().splitlines()]
-    else:
+    if not os.path.exists(url):
         return check_valid_zippyshare_url(url)
+    with open(url, 'r') as opener:
+        return [check_valid_zippyshare_url(i) for i in opener.read().splitlines()]
 
 def _build_argparse_description():
     return "{description}, created by {author}. Repository url: {repository}".format(
@@ -169,12 +168,8 @@ def setup_logging(name_module, verbose=False):
 
 def build_kwargs(args, urls):
     # -pipe option will not enable progress bar because of downloader
-    if args.json:
-        progress_bar = False
-    else:
-        progress_bar = not args.silent
-
-    kwargs = {
+    progress_bar = False if args.json else not args.silent
+    return {
         'urls': urls,
         'download': not args.no_download,
         'unzip': args.unzip,
@@ -187,9 +182,8 @@ def build_kwargs(args, urls):
         'async': args.async_process,
         'fast': args.fast,
         'pipe': args.pipe,
-        'json': args.json
+        'json': args.json,
     }
-    return kwargs
 
 def pretty_print_result(file):
     result = "\n"
@@ -204,5 +198,5 @@ def pretty_print_result(file):
     result += "Name          : %s\n" % file.name
     result += "Size          : %s\n" % file.size_fmt
     result += "Date uploaded : %s\n" % file.date_uploaded_fmt
-    result += "Download URL  : %s" % file.download_url
+    result += f"Download URL  : {file.download_url}"
     print(result)

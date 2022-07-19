@@ -49,10 +49,7 @@ def check_valid_zippyshare_url(url):
 # TODO: Document this !
 def getStartandEndvalue(value: str, sub: str, second_sub=None):
     v = value[value.find(sub)+1:]
-    if second_sub is not None:
-        return v[:v.find(second_sub)]
-    else:
-        return v[:v.find(sub)]
+    return v[:v.find(second_sub)] if second_sub is not None else v[:v.find(sub)]
 
 def extract_archived_file(file) -> None:
     """Extract all files from supported archive file (zip and tar)."""
@@ -66,7 +63,6 @@ def extract_archived_file(file) -> None:
             e.__class__.__name__,
             str(e)
         ))
-        pass
     else:
         log.info('Extracting all files in "%s"' % file)
         tar.extractall(Path(file).parent)
@@ -86,7 +82,6 @@ def extract_archived_file(file) -> None:
             e.__class__.__name__,
             str(e)
         ))
-        pass
     else:
         log.info('Extracting all files in "%s"' % file)
         zip_file.extractall(Path(file).parent)

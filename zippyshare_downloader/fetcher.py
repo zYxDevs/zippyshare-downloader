@@ -31,13 +31,13 @@ def get_info(url) -> Dict[str, str]:
     which in :class:`dict` data type. Normally you don't use this
     , this will be used in :meth:`extract_info` and :meth:`download`.
     """
-    log.info('Grabbing required informations in %s' % url)
+    log.info(f'Grabbing required informations in {url}')
     log.debug('Establishing connection to Zippyshare.')
     r = Net.requests.get(url)
     try:
         r.raise_for_status()
     except requests.HTTPError as e:
-        log.exception('Zippyshare send %s code' % r.status_code)
+        log.exception(f'Zippyshare send {r.status_code} code')
         raise e from None
     log.debug('Successfully established connection to Zippyshare.')
     log.debug('Checking if file is not expired')
@@ -60,13 +60,13 @@ async def get_info_coro(url) -> Dict[str, str]:
     which in :class:`dict` data type. Normally you don't use this
     , this will be used in :meth:`extract_info_coro` and :meth:`download_coro`.
     """
-    log.info('Grabbing required informations in %s' % url)
+    log.info(f'Grabbing required informations in {url}')
     log.debug('Establishing connection to Zippyshare.')
     r = await Net.aiohttp.get(url)
     try:
         r.raise_for_status()
     except aiohttp.ClientResponseError as e:
-        log.exception('Zippyshare send %s code' % r.status)
+        log.exception(f'Zippyshare send {r.status} code')
         raise e from None
     body_html = await r.text()
     log.debug('Successfully established connection to Zippyshare.')
